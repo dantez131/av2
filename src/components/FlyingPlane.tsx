@@ -19,27 +19,27 @@ export default function FlyingPlane() {
         @keyframes flyPlane {
           0% {
             left: -10%;
-            top: 20%;
-            transform: rotate(-15deg);
+            top: 80%;
+            transform: rotate(15deg);
           }
           25% {
-            left: 30%;
-            top: 10%;
-            transform: rotate(-5deg);
+            left: 20%;
+            top: 60%;
+            transform: rotate(5deg);
           }
           50% {
-            left: 60%;
-            top: 25%;
-            transform: rotate(-20deg);
+            left: 50%;
+            top: 30%;
+            transform: rotate(-5deg);
           }
           75% {
-            left: 90%;
-            top: 15%;
+            left: 80%;
+            top: 10%;
             transform: rotate(-10deg);
           }
           100% {
-            left: 120%;
-            top: 30%;
+            left: 110%;
+            top: -5%;
             transform: rotate(-15deg);
           }
         }

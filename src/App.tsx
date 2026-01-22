@@ -5,11 +5,13 @@ import FallingPixels from './components/FallingPixels';
 function App() {
   const [multiplier, setMultiplier] = useState<number | null>(null);
   const [history, setHistory] = useState<number[]>([]);
+  const [animationKey, setAnimationKey] = useState(0);
 
   const generateMultiplier = () => {
     const random = 1.01 + Math.random() * (12.01 - 1.01);
     const newMultiplier = Number(random.toFixed(2));
     setMultiplier(newMultiplier);
+    setAnimationKey((prev) => prev + 1);
     setHistory((prev) => [newMultiplier, ...prev.slice(0, 19)]);
   };
 
@@ -45,7 +47,7 @@ function App() {
 
       <div className="relative z-10 flex flex-col items-center gap-8">
         {multiplier && (
-          <div className="animate-scale-in">
+          <div key={animationKey} className="animate-scale-in">
             <div className="text-6xl font-bold text-white drop-shadow-2xl">
               {multiplier.toFixed(2)}x
             </div>
