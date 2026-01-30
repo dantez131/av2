@@ -1,0 +1,83 @@
+import { useState } from 'react';
+
+interface PasswordGateProps {
+  onSuccess: () => void;
+}
+
+export default function PasswordGate({ onSuccess }: PasswordGateProps) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (password === '7300') {
+      onSuccess();
+    } else {
+      setError(true);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    setError(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-black via-red-950 to-black flex items-center justify-center overflow-hidden relative">
+      <div
+        className="absolute inset-0 opacity-40"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 20% 50%, rgba(220, 20, 60, 0.3) 0%, transparent 50%)',
+        }}
+      ></div>
+
+      <div className="relative z-10 flex flex-col items-center gap-6 px-4">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-white/20 max-w-md w-full">
+          <h1 className="text-3xl font-bold text-white text-center mb-6 drop-shadow-lg">
+            Введите пароль
+          </h1>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={password}
+              onChange={handleChange}
+              placeholder="Введите код"
+              className="px-6 py-4 bg-white/20 border-2 border-white/30 rounded-xl text-white text-center text-2xl font-bold placeholder-white/50 focus:outline-none focus:border-yellow-400 transition-all"
+              autoFocus
+            />
+
+            <button
+              type="submit"
+              className="px-10 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black text-xl font-bold rounded-xl shadow-2xl transform transition-all hover:scale-105 active:scale-95"
+            >
+              Отправить
+            </button>
+
+            {error && (
+              <p className="text-red-400 text-center font-medium animate-shake">
+                Пароль неверный
+              </p>
+            )}
+          </form>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+      `}</style>
+    </div>
+  );
+}

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import FlyingPlane from './components/FlyingPlane';
 import FallingPixels from './components/FallingPixels';
+import PasswordGate from './components/PasswordGate';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [multiplier, setMultiplier] = useState<number | null>(null);
   const [history, setHistory] = useState<number[]>([]);
   const [animationKey, setAnimationKey] = useState(0);
@@ -14,6 +16,10 @@ function App() {
     setAnimationKey((prev) => prev + 1);
     setHistory((prev) => [newMultiplier, ...prev.slice(0, 19)]);
   };
+
+  if (!isAuthenticated) {
+    return <PasswordGate onSuccess={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-red-950 to-black flex items-center justify-center overflow-hidden relative">
