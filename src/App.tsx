@@ -8,6 +8,8 @@ function App() {
   const [multiplier, setMultiplier] = useState<number | null>(null);
   const [history, setHistory] = useState<number[]>([]);
   const [animationKey, setAnimationKey] = useState(0);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isPrecisionUpgraded, setIsPrecisionUpgraded] = useState(false);
 
   const generateMultiplier = () => {
     const random = 1.01 + Math.random() * (12.01 - 1.01);
@@ -51,7 +53,7 @@ function App() {
         </div>
       )}
 
-      <div className="relative z-10 flex flex-col items-center gap-8">
+      <div className="relative z-10 flex flex-col items-center gap-6">
         {multiplier && (
           <div key={animationKey} className="animate-scale-in">
             <div className="text-6xl font-bold text-white drop-shadow-2xl">
@@ -66,7 +68,48 @@ function App() {
         >
           Получить
         </button>
+
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-2xl border border-white/20 max-w-md w-full">
+          <div className="text-center mb-4">
+            <p className="text-white/90 text-sm font-light leading-relaxed mb-4">
+              Бот подключен и готов к работе. Текущая синхронизация коэффициентов - 45%. Для синхронизации на 100% введи дополнительный пароль.
+            </p>
+            {isPrecisionUpgraded && (
+              <p className="text-yellow-400 text-sm font-medium">
+                Точность 99%
+              </p>
+            )}
+          </div>
+
+          {!isPrecisionUpgraded && (
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="w-full px-6 py-3 bg-gradient-to-r from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-black font-bold rounded-xl shadow-lg transform transition-all hover:scale-105 active:scale-95 text-sm"
+            >
+              Повысить точность до 100%
+            </button>
+          )}
+        </div>
+
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-2xl border border-white/20 max-w-md w-full">
+          <p className="text-center text-white/70 text-sm font-light">
+            При возникновении вопросов - @kek13
+          </p>
+        </div>
       </div>
+
+      {showPasswordModal && (
+        <PasswordGate
+          isModal={true}
+          onClose={() => setShowPasswordModal(false)}
+          onSuccess={() => {
+            setIsPrecisionUpgraded(true);
+            setShowPasswordModal(false);
+          }}
+          correctPassword="2801"
+          title="Введите пароль"
+        />
+      )}
 
       <style>{`
         @keyframes scale-in {
