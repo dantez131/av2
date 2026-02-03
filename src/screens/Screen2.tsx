@@ -36,7 +36,7 @@ export default function Screen2({ onPrecisionUpgradeClick }: Screen2Props) {
         <div className="absolute top-2 left-0 right-0 z-20 flex justify-center px-2">
           <div className="text-center">
             <p className="text-xs font-light text-white/70 mb-1 tracking-wide">
-              cronologia dei coefficienti
+               
             </p>
             <div className="flex flex-wrap gap-1 justify-center max-w-sm">
               {history.map((value, idx) => (
