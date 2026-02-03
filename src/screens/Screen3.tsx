@@ -74,7 +74,7 @@ export default function Screen3({ onPasswordSuccess, onModalClose }: Screen3Prop
         <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 shadow-2xl border border-white/20 w-full max-w-sm">
           <div className="text-center">
             <p className="text-white/90 text-xs font-light leading-tight mb-2">
-              Бот подключен и готов к работе. Текущая синхронизация коэффициентов - 45%. Для синхронизации на 100% введи дополнительный пароль.
+              Il bot è connesso e pronto a funzionare. Sincronizzazione attuale dei coefficienti - 45%. Per una sincronizzazione al 100%, immettere una password aggiuntiva
             </p>
           </div>
         </div>
