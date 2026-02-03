@@ -63,7 +63,7 @@ export default function Screen2({ onPrecisionUpgradeClick }: Screen2Props) {
             onClick={generateMultiplier}
             className="mt-8 px-8 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-black text-lg font-bold rounded-2xl shadow-2xl transform transition-all hover:scale-105 active:scale-95"
           >
-            mostra coefficiente
+            MOSTRA COEFFICIENTE
           </button>
         </div>
       </div>
