@@ -72,7 +72,7 @@ export default function Screen2({ onPrecisionUpgradeClick }: Screen2Props) {
         <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 shadow-2xl border border-white/20 w-full max-w-sm">
           <div className="text-center">
             <p className="text-white/90 text-xs font-light leading-tight mb-2">
-              Il bot è connesso e pronto a funzionare. Sincronizzazione attuale dei coefficienti - 45%. Per una sincronizzazione al 100%, immettere una password aggiuntiva.
+              Il bot è connesso e pronto a funzionare. Sincronizzazione attuale dei coefficienti - 45%. Per una sincronizzazione al 100%, immettere una password aggiuntiva
             </p>
             <button
               onClick={onPrecisionUpgradeClick}
