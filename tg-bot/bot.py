@@ -1,6 +1,13 @@
 import os
 import re
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import (
+    Update,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    WebAppInfo,
+)
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -19,21 +26,21 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 LOG_CHAT_ID = -1003671787625       # твой лог-чат
 POSTBACK_CHAT_ID = -1003712583340  # чат с постбеками
 
-# Твой Web App (поменяем потом, если нужно)
-WEBAPP_URL = "https://av2-production.up.railway.app"
+# ДВА ПРИЛОЖЕНИЯ
+APP_BEFORE_DEPOSIT = "https://example.com"   # ЗАМЕНИШЬ, когда сделаешь первое приложение
+APP_AFTER_DEPOSIT = "https://av2-production.up.railway.app/"
 
 # ТВОЙ СТАТИЧНЫЙ ПАРОЛЬ
-WEBAPP_PASSWORD = "7300"
+WEBAPP_PASSWORD = "AV2-ACCESS-2026"
 
 # ищем ID между ==...==
 ID_PATTERN = re.compile(r"==(\d+)==")
 
 # Хранилище статусов пользователей (в памяти)
 user_status = {}
-# возможные статусы:
 # "new" -> ничего нет
 # "registered" -> есть регистрация
-# "deposited" -> есть депозит (доступ выдан)
+# "deposited" -> есть депозит
 
 # ===========================
 # УТИЛИТА ДЛЯ ЛОГОВ
@@ -46,52 +53,106 @@ async def send_log(app: Application, text: str):
         print(f"Ошибка логирования: {e}")
 
 # ===========================
+# ПОСТОЯННЫЕ НИЖНИЕ КНОПКИ
+# ===========================
+
+def main_keyboard():
+    return ReplyKeyboardMarkup(
+        [
+            [KeyboardButton("📱 Открыть приложение")],
+            [KeyboardButton("ℹ️ Инструкция")],
+        ],
+        resize_keyboard=True,
+        persistent=True,
+    )
+
+# ===========================
+# КНОПКА WEB APP (ДИНАМИЧЕСКАЯ)
+# ===========================
+
+def webapp_keyboard(user_id: int):
+    status = user_status.get(user_id, "new")
+
+    if status == "deposited":
+        url = APP_AFTER_DEPOSIT
+    else:
+        url = APP_BEFORE_DEPOSIT
+
+    keyboard = [
+        [InlineKeyboardButton(
+            "🚀 Открыть Web App",
+            web_app=WebAppInfo(url=url)
+        )]
+    ]
+
+    return InlineKeyboardMarkup(keyboard)
+
+# ===========================
 # /START
 # ===========================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-
     user_status.setdefault(user_id, "new")
 
     await send_log(context.application, f"Пользователь {user_id} нажал /start (статус: {user_status[user_id]})")
 
-    keyboard = [
-        [InlineKeyboardButton(
-            "📱 Открыть Web App",
-            web_app=WebAppInfo(url=WEBAPP_URL)
-        )],
-        [InlineKeyboardButton("ℹ️ Инструкция", callback_data="help")],
-    ]
+    status = user_status[user_id]
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    if status == "new":
+        text = (
+            "👋 Привет!\n\n"
+            "1️⃣ Сначала зарегистрируйся.\n"
+            "2️⃣ Затем внеси депозит.\n"
+            "3️⃣ После депозита я дам тебе пароль.\n\n"
+            "Ты уже можешь открыть приложение ниже."
+        )
+    elif status == "registered":
+        text = (
+            "✅ Регистрация у тебя уже есть.\n\n"
+            "👉 Теперь внеси депозит, чтобы получить доступ."
+        )
+    else:  # deposited
+        text = (
+            "🎉 У тебя уже есть доступ!\n\n"
+            "Используй кнопку ниже, чтобы открыть приложение."
+        )
 
     await update.message.reply_text(
-        "👋 Привет! Я твой основной бот.\n\n"
-        "1️⃣ Сначала зарегистрируйся у партнёра.\n"
-        "2️⃣ Затем внеси депозит.\n"
-        "3️⃣ После депозита я выдам тебе пароль к Web App.\n\n"
-        "Можешь уже открыть Web App, но доступ появится после депозита.",
-        reply_markup=reply_markup,
+        text,
+        reply_markup=main_keyboard(),
+    )
+
+    # отдельное сообщение с WebApp-кнопкой
+    await update.message.reply_text(
+        "👇 Открой приложение:",
+        reply_markup=webapp_keyboard(user_id),
     )
 
 # ===========================
-# ОБРАБОТКА КНОПОК
+# ОБРАБОТКА НИЖНИХ КНОПОК
 # ===========================
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
-    data = query.data
+async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    text = update.message.text
 
-    await send_log(context.application, f"Пользователь {user_id} нажал кнопку: {data}")
+    if text == "ℹ️ Инструкция":
+        status = user_status.get(user_id, "new")
 
-    if data == "help":
-        await query.answer(
-            "1) Пройди регистрацию.\n"
-            "2) Внеси депозит.\n"
-            "После этого я пришлю тебе пароль.",
-            show_alert=True,
+        if status == "new":
+            msg = "Сначала зарегистрируйся, затем внеси депозит."
+        elif status == "registered":
+            msg = "Регистрация есть — внеси депозит."
+        else:
+            msg = "У тебя уже есть доступ."
+
+        await update.message.reply_text(msg, reply_markup=main_keyboard())
+
+    elif text == "📱 Открыть приложение":
+        await update.message.reply_text(
+            "👇 Открой приложение:",
+            reply_markup=webapp_keyboard(user_id),
         )
 
 # ===========================
@@ -99,7 +160,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ===========================
 
 async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # реагируем ТОЛЬКО на нужный чат
     if update.effective_chat.id != POSTBACK_CHAT_ID:
         return
 
@@ -111,14 +171,11 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     user_id = int(match.group(1))
-
-    # Инициализируем статус, если пользователя ещё не было
     user_status.setdefault(user_id, "new")
 
-    # Определяем тип постбека по тексту
     text_lower = text.lower()
 
-    # ====== 1) РЕГИСТРАЦИЯ ======
+    # ====== РЕГИСТРАЦИЯ ======
     if "registration" in text_lower or "reg" in text_lower:
         user_status[user_id] = "registered"
 
@@ -127,16 +184,16 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.application.bot.send_message(
                 chat_id=user_id,
-                text="✅ Регистрация подтверждена!\n\nТеперь внеси депозит, чтобы получить доступ."
+                text="✅ Регистрация подтверждена!\n\nТеперь внеси депозит.",
+                reply_markup=main_keyboard(),
             )
         except Exception as e:
             await send_log(context.application, f"❌ Не смог написать пользователю {user_id}: {e}")
 
-    # ====== 2) ДЕПОЗИТ ======
+    # ====== ДЕПОЗИТ ======
     elif "deposit" in text_lower or "dep" in text_lower or "amount" in text_lower:
-        # Если уже выдавали доступ — не дублируем
         if user_status.get(user_id) == "deposited":
-            await send_log(context.application, f"ℹ️ Депозит повторно пришёл для {user_id}, но доступ уже выдан")
+            await send_log(context.application, f"ℹ️ Повторный депозит для {user_id}, доступ уже был выдан")
             return
 
         user_status[user_id] = "deposited"
@@ -147,10 +204,17 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.application.bot.send_message(
                 chat_id=user_id,
                 text=f"🎉 Депозит подтверждён!\n\n"
-                     f"🔑 Твой пароль для Web App:\n\n"
-                     f"`{WEBAPP_PASSWORD}`\n\n"
-                     f"Нажми «Открыть Web App» и введи его там.",
-                parse_mode="Markdown"
+                     f"🔑 Твой пароль:\n\n`{WEBAPP_PASSWORD}`\n\n"
+                     f"Теперь открой приложение по кнопке ниже 👇",
+                parse_mode="Markdown",
+                reply_markup=main_keyboard(),
+            )
+
+            # сразу присылаем правильную WebApp кнопку
+            await context.application.bot.send_message(
+                chat_id=user_id,
+                text="👇 Открой приложение:",
+                reply_markup=webapp_keyboard(user_id),
             )
         except Exception as e:
             await send_log(context.application, f"❌ Не смог написать пользователю {user_id}: {e}")
@@ -159,14 +223,14 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_log(context.application, f"ℹ️ Неизвестный постбек для {user_id}: {text}")
 
 # ===========================
-# ЗАПУСК БОТА
+# ЗАПУСК
 # ===========================
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, postback_handler))
 
     print("✅ Bot started and running...")
