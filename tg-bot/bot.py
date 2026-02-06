@@ -102,6 +102,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
     await query.answer()
+    status = user_status.get(user_id, "new")
 
     if data == "instruction":
         await query.edit_message_text(
@@ -116,12 +117,36 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif data == "connect":
+        if status == "new":
+            text = (
+                "Создай аккаунт. Депозит вносить не нужно. "
+                "После создания бот напишет тебе что делать дальше.\n\n"
+            )
+            button_text = "СОЗДАТЬ АККАУНТ"
+        elif status == "registered":
+            text = (
+                "✅ Аккаунт найден ботом. Теперь внеси депозит для подключения. "
+                "Достаточно всего 20 евро, чтобы бот смог подключиться к аккаунту и начать синхронизацию. "
+                "После внесения депозита бот напишет тебе что делать дальше.\n\n"
+            )
+            button_text = "ПРОДОЛЖИТЬ"
+        else:  # deposited
+            text = "✅ Бот подключен к сайту - открывай бота, делай ставки и зарабатывай!\n\n"
+            button_text = "ОТКРЫТЬ ИГРУ"
+
+        # Создаем клавиатуру с кнопкой-ссылкой + стандартное меню
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(
+                button_text,
+                url=f"https://gembl.pro/click?o=705&a=1933&sub_id2={user_id}"
+            )],
+            *menu_keyboard(user_id).inline_keyboard
+        ])
+
         await query.edit_message_text(
-            f"Создай аккаунт. Депозит вносить не нужно. "
-            f"После создания бот напишет тебе что делать дальше.\n\n"
-            f"Нажми сюда - [СОЗДАТЬ АККАУНТ](https://gembl.pro/click?o=705&a=1933&sub_id2={user_id})",
-            parse_mode="Markdown",
-            reply_markup=menu_keyboard(user_id),
+            text,
+            reply_markup=keyboard,
+            parse_mode="Markdown"
         )
 
     elif data == "price":
