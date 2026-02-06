@@ -1,211 +1,152 @@
-import os
 import re
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    WebAppInfo,
-)
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,
-    filters,
-    ContextTypes,
-)
+import asyncio
+from telethon import TelegramClient, events, Button
 
-# ===========================
-# НАСТРОЙКИ
-# ===========================
+# ================== НАСТРОЙКИ ==================
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = "ТВОЙ_ТОКЕН_БОТА"
 
-LOG_CHAT_ID = -1003671787625       # чат для логов
-POSTBACK_CHAT_ID = -1003712583340  # чат с постбеками
+# Чаты
+LOG_CHAT_ID = -1003671787625        # чат логов
+POSTBACK_CHAT_ID = -1003712583340   # чат постбеков
 
-# Адрес твоего веб-приложения (меняй на свой домен при необходимости)
-BASE_APP_URL = "https://aviatorbot.up.railway.app/"
+# WEB APP URL (три состояния)
+APP_URL_NEW = "https://aviatorbot.up.railway.app/app1"
+APP_URL_REGISTERED = "https://aviatorbot.up.railway.app/app2"
+APP_URL_DEPOSITED = "https://aviatorbot.up.railway.app/app3"
 
-WEBAPP_PASSWORD = "7300"
+# ================== ИНИЦИАЛИЗАЦИЯ ==================
 
-# Вытаскиваем ID пользователя из постбека между ==
-ID_PATTERN = re.compile(r"==(\d+)==")
+client = TelegramClient("bot", api_id=0, api_hash="").start(bot_token=BOT_TOKEN)
 
-# Память состояний пользователей (пока в оперативке)
-# Возможные состояния: "new", "registered", "deposited"
-user_status = {}
+# Хранилище состояний пользователей
+# Возможные значения: "new", "registered", "deposited"
+user_states = {}
 
-# ===========================
-# ЛОГИ
-# ===========================
+# ================== УТИЛИТЫ ==================
 
-async def send_log(app: Application, text: str):
+async def log(text: str):
+    """Отправка логов в отдельный чат"""
     try:
-        await app.bot.send_message(chat_id=LOG_CHAT_ID, text=f"📡 LOG: {text}")
+        await client.send_message(LOG_CHAT_ID, f"📡 LOG: {text}")
     except Exception as e:
-        print(f"Ошибка логирования: {e}")
+        print("Ошибка логирования:", e)
 
-# ===========================
-# УНИВЕРСАЛЬНОЕ INLINE-МЕНЮ
-# ===========================
+def extract_user_id(text: str):
+    """
+    Извлекаем ID пользователя между == и ==
+    Пример:  something ==528202393== something
+    """
+    match = re.search(r"==(\d+)==", text)
+    if match:
+        return int(match.group(1))
+    return None
 
-def menu_keyboard(user_id: int):
-    status = user_status.get(user_id, "new")
+def get_main_keyboard(user_id: int):
+    """Динамическая клавиатура в зависимости от статуса"""
+    status = user_states.get(user_id, "new")
 
-    buttons = [
-        [InlineKeyboardButton("🏠 Главное меню", callback_data="menu")],
-        [InlineKeyboardButton("ℹ️ Инструкция", callback_data="help")],
+    if status == "new":
+        webapp_url = APP_URL_NEW
+    elif status == "registered":
+        webapp_url = APP_URL_REGISTERED
+    else:  # deposited
+        webapp_url = APP_URL_DEPOSITED
+
+    return [
+        [Button.web_app("Открыть приложение", webapp_url)],
+        [Button.text("Помощь"), Button.text("Мой статус")]
     ]
 
-    # Динамическая WebApp-кнопка
-    if status == "new":
-        url = f"{BASE_APP_URL}?state=waiting_reg"
-        label = "🔒 Открыть приложение (ожидаем регистрацию)"
-    elif status == "registered":
-        url = f"{BASE_APP_URL}?state=waiting_deposit"
-        label = "⏳ Открыть приложение (ожидаем депозит)"
-    else:  # deposited
-        url = f"{BASE_APP_URL}?state=unlocked"
-        label = "🚀 Открыть приложение (доступ открыт)"
+# ================== /START ==================
 
-    buttons.append([
-        InlineKeyboardButton(label, web_app=WebAppInfo(url=url))
-    ])
+@client.on(events.NewMessage(pattern="/start"))
+async def start_handler(event):
+    user_id = event.sender_id
+    user_states[user_id] = "new"
 
-    return InlineKeyboardMarkup(buttons)
+    await log(f"▶️ Пользователь {user_id} нажал /start")
 
-# ===========================
-# /START
-# ===========================
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    user_status.setdefault(user_id, "new")
-
-    await send_log(
-        context.application,
-        f"Пользователь {user_id} нажал /start (статус: {user_status[user_id]})"
+    await event.respond(
+        "👋 Добро пожаловать! Используйте меню внизу 👇",
+        buttons=get_main_keyboard(user_id)
     )
 
-    await update.message.reply_text(
-        "👋 Привет! Это главное меню бота.\n"
-        "Все действия доступны в кнопках ниже 👇",
-        reply_markup=menu_keyboard(user_id),
+# ================== ОБРАБОТКА КНОПОК ==================
+
+@client.on(events.NewMessage(pattern="Помощь"))
+async def help_handler(event):
+    user_id = event.sender_id
+
+    await log(f"ℹ️ Пользователь {user_id} нажал ПОМОЩЬ")
+
+    await event.respond(
+        "📖 Инструкция:\n\n"
+        "1️⃣ Зарегистрируйтесь в приложении\n"
+        "2️⃣ Внесите депозит\n"
+        "3️⃣ Получите доступ к сервису",
+        buttons=get_main_keyboard(user_id)
     )
 
-# ===========================
-# ОБРАБОТКА INLINE-КНОПОК (МЕНЮ)
-# ===========================
+@client.on(events.NewMessage(pattern="Мой статус"))
+async def status_handler(event):
+    user_id = event.sender_id
+    status = user_states.get(user_id, "new")
 
-async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
-    data = query.data
+    await log(f"📊 Пользователь {user_id} запросил статус")
 
-    await query.answer()
+    text = {
+        "new": "🆕 Вы ещё не зарегистрированы.",
+        "registered": "🟡 Регистрация есть, ожидаем депозит.",
+        "deposited": "🟢 Депозит получен — доступ открыт!"
+    }.get(status, "Неизвестный статус")
 
-    if data == "menu":
-        await query.edit_message_text(
-            "🏠 Главное меню",
-            reply_markup=menu_keyboard(user_id),
-        )
+    await event.respond(
+        f"Ваш статус: {text}",
+        buttons=get_main_keyboard(user_id)
+    )
 
-    elif data == "help":
-        await query.edit_message_text(
-            "📖 Инструкция:\n\n"
-            "1) Зарегистрируйся у партнёра\n"
-            "2) Внеси депозит\n"
-            "3) Получи пароль от бота\n\n"
-            "Выбери действие ниже 👇",
-            reply_markup=menu_keyboard(user_id),
-        )
+# ================== ОБРАБОТКА ПОСТБЕКОВ ==================
 
-# ===========================
-# ОБРАБОТКА ПОСТБЕКОВ
-# ===========================
+@client.on(events.NewMessage(chats=POSTBACK_CHAT_ID))
+async def postback_handler(event):
+    text = event.raw_text
+    user_id = extract_user_id(text)
 
-async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.id != POSTBACK_CHAT_ID:
+    await log(f"📨 Получен постбек: {text}")
+
+    if not user_id:
+        await log("❌ Не удалось извлечь user_id из постбека")
         return
 
-    text = update.message.text or ""
-    match = ID_PATTERN.search(text)
-
-    if not match:
-        await send_log(context.application, f"⚠️ Постбек без понятного ID: {text}")
-        return
-
-    user_id = int(match.group(1))
-    user_status.setdefault(user_id, "new")
-
-    text_lower = text.lower()
-
-    # === РЕГИСТРАЦИЯ ===
-    if "registration" in text_lower or "reg" in text_lower:
-        user_status[user_id] = "registered"
-
-        await send_log(context.application, f"📩 Регистрация для {user_id}")
+    # Определяем тип постбека
+    if "registration" in text.lower() or "reg" in text.lower():
+        user_states[user_id] = "registered"
 
         try:
-            await context.application.bot.send_message(
-                chat_id=user_id,
-                text="✅ Регистрация подтверждена!\n\n"
-                     "Теперь внеси депозит, чтобы получить доступ.",
-                reply_markup=menu_keyboard(user_id),
+            await client.send_message(
+                user_id,
+                "✅ Регистрация подтверждена! Теперь внесите депозит.",
+                buttons=get_main_keyboard(user_id)
             )
+            await log(f"✅ Пользователь {user_id} → статус REGISTERED")
         except Exception as e:
-            await send_log(
-                context.application,
-                f"❌ Не смог написать пользователю {user_id}: {e}"
-            )
+            await log(f"❌ Не смог написать пользователю {user_id}: {e}")
 
-    # === ДЕПОЗИТ ===
-    elif "deposit" in text_lower or "amount" in text_lower:
-        user_status[user_id] = "deposited"
-
-        await send_log(context.application, f"💰 Депозит получен для {user_id}")
+    elif "deposit" in text.lower() or "dep" in text.lower():
+        user_states[user_id] = "deposited"
 
         try:
-            # Выдаём пароль
-            await context.application.bot.send_message(
-                chat_id=user_id,
-                text=f"🎉 Депозит подтверждён!\n\n"
-                     f"🔑 Твой пароль:\n\n`{WEBAPP_PASSWORD}`",
-                parse_mode="Markdown",
-                reply_markup=menu_keyboard(user_id),
+            await client.send_message(
+                user_id,
+                "🎉 Депозит получен! Вам открыт доступ к приложению.",
+                buttons=get_main_keyboard(user_id)
             )
-
-            # Отдельное сообщение с WebApp
-            await context.application.bot.send_message(
-                chat_id=user_id,
-                text="👇 Теперь можешь открыть приложение:",
-                reply_markup=menu_keyboard(user_id),
-            )
-
+            await log(f"✅ Пользователь {user_id} → статус DEPOSITED")
         except Exception as e:
-            await send_log(
-                context.application,
-                f"❌ Не смог написать пользователю {user_id}: {e}"
-            )
+            await log(f"❌ Не смог написать пользователю {user_id}: {e}")
 
-# ===========================
-# ЗАПУСК БОТА
-# ===========================
+# ================== ЗАПУСК ==================
 
-def main():
-    print("🚀 Бот запускается...")
-
-    app = Application.builder().token(BOT_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(menu_callback))
-    app.add_handler(
-        MessageHandler(filters.Chat(POSTBACK_CHAT_ID) & filters.TEXT, postback_handler)
-    )
-
-    print("✅ Bot started and running...")
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
+print("🚀 Бот запущен...")
+client.run_until_disconnected()
