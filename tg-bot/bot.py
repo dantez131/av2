@@ -32,7 +32,7 @@ WEBAPP_PASSWORD = "AV2-ACCESS-2026"
 
 ID_PATTERN = re.compile(r"==(\d+)==")
 
-# память (пока без БД)
+# Память пользователя (пока в оперативке)
 user_status = {}
 
 # ===========================
@@ -46,7 +46,8 @@ async def send_log(app: Application, text: str):
         print(f"Ошибка логирования: {e}")
 
 # ===========================
-# ПОСТОЯННАЯ КЛАВИАТУРА (ВАЖНО!)
+# ПОСТОЯННАЯ НИЖНЯЯ КЛАВИАТУРА
+# (БЕЗ persistent=True — чтобы не падало)
 # ===========================
 
 def main_keyboard():
@@ -57,12 +58,11 @@ def main_keyboard():
     return ReplyKeyboardMarkup(
         keyboard,
         resize_keyboard=True,
-        persistent=True,
         one_time_keyboard=False
     )
 
 # ===========================
-# WEBAPP-КНОПКА
+# WEBAPP-КНОПКА (меняется после депозита)
 # ===========================
 
 def webapp_keyboard(user_id: int):
@@ -89,11 +89,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = (
         "👋 Привет!\n\n"
-        "Ниже всегда будут кнопки.\n"
+        "Кнопки будут внизу экрана.\n"
         "Нажми **📱 Открыть приложение**, чтобы продолжить."
     )
 
-    # 🔥 ВАЖНО: ВСЕГДА даём клавиатуру
+    # Всегда даём клавиатуру
     await update.message.reply_text(
         text,
         parse_mode="Markdown",
@@ -117,7 +117,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if text == "ℹ️ Инструкция":
         await update.message.reply_text(
             "Инструкция:\n1) Зарегистрируйся\n2) Внеси депозит\n3) Получи пароль",
-            reply_markup=main_keyboard(),  # 🔥 ВАЖНО
+            reply_markup=main_keyboard(),
         )
 
     elif text == "📱 Открыть приложение":
@@ -125,7 +125,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "👇 Открой приложение:",
             reply_markup=webapp_keyboard(user_id),
         )
-        # И ПОВТОРНО дублируем основную клавиатуру
+        # Дублируем клавиатуру, чтобы она точно осталась внизу
         await update.message.reply_text(
             "Кнопки остаются внизу 👇",
             reply_markup=main_keyboard(),
@@ -160,7 +160,7 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.application.bot.send_message(
                 chat_id=user_id,
                 text="✅ Регистрация подтверждена!\n\nТеперь внеси депозит.",
-                reply_markup=main_keyboard(),  # 🔥 ВАЖНО
+                reply_markup=main_keyboard(),
             )
         except Exception as e:
             await send_log(context.application, f"❌ Не смог написать пользователю {user_id}: {e}")
@@ -176,7 +176,7 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=user_id,
                 text=f"🎉 Депозит подтверждён!\n\n🔑 Твой пароль:\n\n`{WEBAPP_PASSWORD}`",
                 parse_mode="Markdown",
-                reply_markup=main_keyboard(),  # 🔥 ВАЖНО
+                reply_markup=main_keyboard(),
             )
 
             await context.application.bot.send_message(
