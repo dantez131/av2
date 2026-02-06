@@ -11,7 +11,6 @@ from telegram import (
 from telegram.ext import (
     Application,
     CommandHandler,
-    CallbackQueryHandler,
     MessageHandler,
     filters,
     ContextTypes,
@@ -27,7 +26,7 @@ LOG_CHAT_ID = -1003671787625       # твой лог-чат
 POSTBACK_CHAT_ID = -1003712583340  # чат с постбеками
 
 # ДВА ПРИЛОЖЕНИЯ
-APP_BEFORE_DEPOSIT = "https://example.com"   # ЗАМЕНИШЬ, когда сделаешь первое приложение
+APP_BEFORE_DEPOSIT = "https://example.com"   # временная заглушка
 APP_AFTER_DEPOSIT = "https://av2-production.up.railway.app/"
 
 # ТВОЙ СТАТИЧНЫЙ ПАРОЛЬ
@@ -95,7 +94,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_status.setdefault(user_id, "new")
 
-    await send_log(context.application, f"Пользователь {user_id} нажал /start (статус: {user_status[user_id]})")
+    await send_log(
+        context.application,
+        f"Пользователь {user_id} нажал /start (статус: {user_status[user_id]})"
+    )
 
     status = user_status[user_id]
 
@@ -118,12 +120,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Используй кнопку ниже, чтобы открыть приложение."
         )
 
+    # Первое сообщение + постоянные кнопки
     await update.message.reply_text(
         text,
         reply_markup=main_keyboard(),
     )
 
-    # отдельное сообщение с WebApp-кнопкой
+    # Второе сообщение — WebApp кнопка
     await update.message.reply_text(
         "👇 Открой приложение:",
         reply_markup=webapp_keyboard(user_id),
@@ -156,10 +159,11 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 # ===========================
-# ЧТЕНИЕ ПОСТБЕК-ЧАТА
+# ЧТЕНИЕ ПОСТБЕК-ЧАТА (ОТДЕЛЬНО!)
 # ===========================
 
 async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # РЕАГИРУЕМ ТОЛЬКО НА ЧАТ С ПОСТБЕКАМИ
     if update.effective_chat.id != POSTBACK_CHAT_ID:
         return
 
@@ -193,12 +197,18 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ====== ДЕПОЗИТ ======
     elif "deposit" in text_lower or "dep" in text_lower or "amount" in text_lower:
         if user_status.get(user_id) == "deposited":
-            await send_log(context.application, f"ℹ️ Повторный депозит для {user_id}, доступ уже был выдан")
+            await send_log(
+                context.application,
+                f"ℹ️ Повторный депозит для {user_id}, доступ уже был выдан"
+            )
             return
 
         user_status[user_id] = "deposited"
 
-        await send_log(context.application, f"💰 Депозит получен для {user_id} — выдаём пароль")
+        await send_log(
+            context.application,
+            f"💰 Депозит получен для {user_id} — выдаём пароль"
+        )
 
         try:
             await context.application.bot.send_message(
@@ -210,7 +220,6 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=main_keyboard(),
             )
 
-            # сразу присылаем правильную WebApp кнопку
             await context.application.bot.send_message(
                 chat_id=user_id,
                 text="👇 Открой приложение:",
@@ -220,7 +229,10 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await send_log(context.application, f"❌ Не смог написать пользователю {user_id}: {e}")
 
     else:
-        await send_log(context.application, f"ℹ️ Неизвестный постбек для {user_id}: {text}")
+        await send_log(
+            context.application,
+            f"ℹ️ Неизвестный постбек для {user_id}: {text}"
+        )
 
 # ===========================
 # ЗАПУСК
@@ -230,8 +242,14 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, postback_handler))
+
+    # ВАЖНО: разделяем обработчики
+    app.add_handler(
+        MessageHandler(filters.Chat(POSTBACK_CHAT_ID) & filters.TEXT, postback_handler)
+    )
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler)
+    )
 
     print("✅ Bot started and running...")
     app.run_polling()
