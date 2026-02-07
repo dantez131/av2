@@ -139,7 +139,7 @@ async def process_registration(app: Application, user_id: int):
         chat_id=user_id,
         text="✅ Account trovato dal bot. Ora effettua un deposito per connetterti.\n\n"
                 "--- [CONTINUARE](https://gembl.pro/click?o=780&a=1933&sub_id2={user_id}) ---"
-            ).format(user_id=user_id),
+            ).format(user_id=user_id),"
         reply_markup=keyboard,
     )
 
