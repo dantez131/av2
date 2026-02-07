@@ -70,24 +70,24 @@ def menu_keyboard(user_id: int):
     status = user_status.get(user_id, "new")
 
     buttons = [
-        [InlineKeyboardButton("📖 Инструкция к подключению и работе", callback_data="instruction")],
-        [InlineKeyboardButton("🤖 Подключить бота", callback_data="connect")],
-        [InlineKeyboardButton("💸 Стоимость", callback_data="price")],
+        [InlineKeyboardButton("📖 Istruzioni per il collegamento e il funzionamento", callback_data="instruction")],
+        [InlineKeyboardButton("🤖 Connetti un bot", callback_data="connect")],
+        [InlineKeyboardButton("💸 Prezzo", callback_data="price")],
         [InlineKeyboardButton(
-            "🆘 Помощь",
+            "🆘 Fai una domanda",
             url="https://t.me/Dante_Valdes?text=Ciao!%20Ho%20una%20domanda%20sul%20bot"
         )],
     ]
 
     if status == "new":
         url = f"{BASE_APP_URL}?screen=noreg"
-        label = "🔒 Открыть приложение (ожидаем регистрацию)"
+        label = "Apri Aviator Predittore"
     elif status == "registered":
         url = f"{BASE_APP_URL}?screen=nodep"
-        label = "⏳ Открыть приложение (ожидаем депозит)"
+        label = "Apri Aviator Predittore"
     else:  # deposited
         url = BASE_APP_URL
-        label = "🚀 Открыть приложение (доступ открыт)"
+        label = "🚀 Apri Aviator Predittore"
 
     buttons.append([InlineKeyboardButton(label, web_app=WebAppInfo(url=url))])
 
@@ -108,8 +108,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await update.message.reply_text(
-        "👋 Привет! Это главное меню бота.\n"
-        "Все действия доступны в кнопках ниже 👇",
+        "👋 Ciao! Questo è il menu principale del bot.\n"
+        "Tutte le azioni sono disponibili nei pulsanti sottostanti 👇",
         reply_markup=menu_keyboard(user_id),
     )
 
@@ -125,19 +125,19 @@ async def process_registration(app: Application, user_id: int):
 
     await app.bot.send_message(
         chat_id=user_id,
-        text="✅ Аккаунт обнаружен ботом! Теперь внеси депозит для подключения.\n"
-             "Достаточно всего 20 евро, чтобы бот смог подключиться к аккаунту.",
+        text="✅ Account rilevato dal bot! \n Ora effettua un deposito per connetterti.\n"
+             "Il deposito minimo è di soli 20 euro affinché il bot si connetta al tuo account.",
         reply_markup=menu_keyboard(user_id),
     )
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("💰 Я ВНЕС ДЕПОЗИТ", callback_data="made_deposit")],
-        [InlineKeyboardButton("⬅️ Назад в меню", callback_data="back_menu")]
+        [InlineKeyboardButton("💰 HO EFFETTUATO UN DEPOSITO", callback_data="made_deposit")],
+        [InlineKeyboardButton("⬅️ Torna al menù", callback_data="back_menu")]
     ])
 
     await app.bot.send_message(
         chat_id=user_id,
-        text="Когда сделаешь депозит, нажми на кнопку для активации бота ✅",
+        text="Quando effettui un deposito, fai clic sul pulsante per attivare il bot ✅",
         reply_markup=keyboard,
     )
 
@@ -151,8 +151,8 @@ async def process_deposit(app: Application, user_id: int):
 
     await app.bot.send_message(
         chat_id=user_id,
-        text="🎉 Депозит обнаружен! Бот успешно подключен.\n"
-             "Теперь можешь открывать приложение и начинать играть 🚀",
+        text="🎉 Deposito rilevato! Bot connesso correttamente.\n"
+             "Ora puoi aprire l'applicazione e iniziare a giocare 🚀",
         reply_markup=menu_keyboard(user_id),
     )
 
@@ -172,13 +172,13 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data == "instruction":
         await query.edit_message_text(
-            "1 - Подключение бота:\n"
-            "Тебе нужно создать новый аккаунт и подождать около 1 минуты пока бот его обнаружит, "
-            "потом внеси депозит и ожидай еще 2 минуты синхронизации бота. "
-            "Бот подключен и готов к работе.\n\n"
-            "2 - Использование бота:\n"
-            "Как только начинается раунд - нажимай кнопку Мостра. "
-            "Ты получишь коэффициент на котором самолет улетит в ЭТОМ раунде",
+            "1 - Connessione di un bot:\n"
+            "Devi creare un nuovo account e attendere circa 1 minuto affinché il bot lo rilevi, "
+            "quindi effettua un deposito e attendi altri 2 minuti affinché il bot si sincronizzi. "
+            "Il bot è connesso e pronto a funzionare.\n\n"
+            "2 - Utilizzando il bot:\n"
+            "Non appena inizia il round, premi il pulsante MOSTRA COEFFICIENTE. "
+            "Riceverai le quote sulle quali l'aereo volerà via in QUESTO round",
             reply_markup=menu_keyboard(user_id),
         )
 
@@ -186,53 +186,53 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if status == "new":
             text = (
-                "Когда создашь аккаунт на сайте, нажми на кнопку для подключения бота ✅\n\n"
-                "--- [СОЗДАТЬ АККАУНТ](https://gembl.pro/click?o=705&a=1933&sub_id2={user_id}) ---"
+                "Quando crei un account sul sito, fai clic sul pulsante per connettere il bot ✅\n\n"
+                "--- [CREARE UN ACCOUNT](https://gembl.pro/click?o=705&a=1933&sub_id2={user_id}) ---"
             ).format(user_id=user_id)
 
             keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🟢 Я СОЗДАЛ АККАУНТ", callback_data="created_account")],
-                [InlineKeyboardButton("⬅️ Назад в меню", callback_data="back_menu")]
+                [InlineKeyboardButton("🟢 CREO UN ACCOUNT", callback_data="created_account")],
+                [InlineKeyboardButton("⬅️ Torna al menù", callback_data="back_menu")]
             ])
 
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
         elif status == "registered":
             text = (
-                "✅ Аккаунт найден ботом. Теперь внеси депозит для подключения.\n\n"
-                "--- [ПРОДОЛЖИТЬ](https://gembl.pro/click?o=705&a=1933&sub_id2={user_id}) ---"
+                "✅ Account trovato dal bot. Ora effettua un deposito per connetterti.\n\n"
+                "--- [CONTINUARE](https://gembl.pro/click?o=705&a=1933&sub_id2={user_id}) ---"
             ).format(user_id=user_id)
 
             keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("💰 Я ВНЕС ДЕПОЗИТ", callback_data="made_deposit")],
-                [InlineKeyboardButton("⬅️ Назад в меню", callback_data="back_menu")]
+                [InlineKeyboardButton("💰 HO EFFETTUATO UN DEPOSITO", callback_data="made_deposit")],
+                [InlineKeyboardButton("⬅️ Torna al menù", callback_data="back_menu")]
             ])
 
             await query.edit_message_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
         else:  # deposited
             await query.edit_message_text(
-                "✅ Бот подключен и готов к работе.",
+                "✅ Il bot è connesso e pronto a funzionare.",
                 reply_markup=menu_keyboard(user_id),
             )
 
     elif data == "price":
         await query.edit_message_text(
-            "Бот полностью бесплатный. Разработчик верит в добро и честность людей. "
-            "Если ты захочешь поделиться частью своего выигрыша - напиши мне и я пришлю реквизиты для перевода",
+            "Il bot è completamente gratuito. Credo nella bontà e nell'onestà delle persone. "
+            "Se vuoi condividere parte della tua vincita scrivimi e ti invierò i dettagli per il bonifico. Grazie!",
             reply_markup=menu_keyboard(user_id),
         )
 
     elif data == "back_menu":
         await query.edit_message_text(
-            "Главное меню 👇",
+            "Menù principale 👇",
             reply_markup=menu_keyboard(user_id),
         )
 
     elif data == "created_account":
         await query.edit_message_text(
-            "🔍 Бот ищет твой аккаунт, подожди 1-2 минуты. "
-            "Когда аккаунт будет найден, ты получишь уведомление..."
+            "🔍 Il bot sta cercando il tuo account, attendi 1-2 minuti. "
+            "Una volta trovato l'account, riceverai una notifica..."
         )
 
         await send_log(context.application, f"⏳ Пользователь {user_id} нажал: Я СОЗДАЛ АККАУНТ")
@@ -241,7 +241,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "made_deposit":
         await query.edit_message_text(
-            "🔄 Бот подключается к аккаунту, ожидайте 1-3 минуты..."
+            "🔄 Il bot si sta connettendo al tuo account, attendi 1-3 minuti..."
         )
 
         await send_log(context.application, f"⏳ Пользователь {user_id} нажал: Я ВНЕС ДЕПОЗИТ")
@@ -253,7 +253,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ===========================
 
 def main():
-    print("🚀 Бот запускается...")
+    print("🚀 Il bot si avvia...")
 
     load_users()
 
