@@ -51,7 +51,7 @@ async def send_log(app: Application, text: str):
 def menu_keyboard(user_id: int):
     status = user_status.get(user_id, "new")
 
-    # Стандартное меню, без лишних кнопок внизу
+    # Стандартное меню
     buttons = [
         [InlineKeyboardButton("📖 Инструкция к подключению и работе", callback_data="instruction")],
         [InlineKeyboardButton("🤖 Подключить бота", callback_data="connect")],
@@ -59,16 +59,21 @@ def menu_keyboard(user_id: int):
         [InlineKeyboardButton("🆘 Помощь", callback_data="help")],
     ]
 
-    # Динамическая WebApp-кнопка
+    # ======= ИЗМЕНЁННЫЙ БЛОК (ТОЛЬКО ЭТО Я ДОБАВИЛ) =======
+
     if status == "new":
-        url = f"{BASE_APP_URL}?state=waiting_reg"
+        url = f"{BASE_APP_URL}?screen=noreg"
         label = "🔒 Открыть приложение (ожидаем регистрацию)"
+
     elif status == "registered":
-        url = f"{BASE_APP_URL}?state=waiting_deposit"
+        url = f"{BASE_APP_URL}?screen=nodep"
         label = "⏳ Открыть приложение (ожидаем депозит)"
+
     else:  # deposited
-        url = f"{BASE_APP_URL}?state=unlocked"
+        url = BASE_APP_URL  # стандартная версия
         label = "🚀 Открыть приложение (доступ открыт)"
+
+    # =====================================================
 
     buttons.append([InlineKeyboardButton(label, web_app=WebAppInfo(url=url))])
 
@@ -119,7 +124,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "connect":
         if status == "new":
-            # Текст с гиперссылкой в конце
             text = (
                 "Создай аккаунт. Депозит вносить не нужно.\n"
                 "После создания бот напишет тебе что делать дальше.\n"
@@ -138,7 +142,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "--- [ОТКРЫТЬ ИГРУ](https://gembl.pro/click?o=705&a=1933&sub_id2={user_id}) ---"
             )
 
-        # Подставляем реальный ID пользователя
         text = text.format(user_id=user_id)
 
         await query.edit_message_text(
