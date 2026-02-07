@@ -56,7 +56,7 @@ def menu_keyboard(user_id: int):
         [InlineKeyboardButton("📖 Инструкция к подключению и работе", callback_data="instruction")],
         [InlineKeyboardButton("🤖 Подключить бота", callback_data="connect")],
         [InlineKeyboardButton("💸 Стоимость", callback_data="price")],
-        [InlineKeyboardButton("🆘 Помощь", url="tg://user?id=8272327693")],
+        [InlineKeyboardButton("🆘 Помощь", url="https://t.me/Dante_Valdes")]
     ]
 
     # ======= ИЗМЕНЁННЫЙ БЛОК (ТОЛЬКО ЭТО Я ДОБАВИЛ) =======
