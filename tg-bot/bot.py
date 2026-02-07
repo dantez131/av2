@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import asyncio
 from telegram import (
     Update,
     InlineKeyboardButton,
@@ -23,18 +24,15 @@ from telegram.ext import (
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 LOG_CHAT_ID = -1003671787625       # чат для логов
-POSTBACK_CHAT_ID = -1003712583340  # чат с постбеками
 
-# Адрес твоего веб-приложения
 BASE_APP_URL = "https://aviatorbot.up.railway.app/"
 
-# Вытаскиваем ID пользователя из постбека между ==
-ID_PATTERN = re.compile(r"==(\d+)==")
+# Возможные состояния:
+# "new" -> не зарегистрирован
+# "registered" -> зарегистрирован, но без депозита
+# "deposited" -> депозит внесён
 
-# Память состояний пользователей (теперь сохраняем в файл)
-# Возможные состояния: "new", "registered", "deposited"
 user_status = {}
-
 USERS_FILE = "users.json"
 
 # ===========================
@@ -46,7 +44,6 @@ def load_users():
     try:
         with open(USERS_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            # ключи в JSON — строки, приводим к int
             user_status = {int(k): v for k, v in data.items()}
         print(f"📂 Загружены пользователи из {USERS_FILE}: {user_status}")
     except Exception as e:
@@ -109,7 +106,7 @@ def menu_keyboard(user_id: int):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_status.setdefault(user_id, "new")
-    save_users()  # <-- сохраняем, если появился новый пользователь
+    save_users()
 
     await send_log(
         context.application,
@@ -147,32 +144,16 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif data == "connect":
-        if status == "new":
-            text = (
-                "Создай аккаунт. Депозит вносить не нужно.\n"
-                "После создания бот напишет тебе что делать дальше.\n"
-                "--- [СОЗДАТЬ АККАУНТ](https://gembl.pro/click?o=705&a=1933&sub_id2={user_id}) ---"
-            )
-        elif status == "registered":
-            text = (
-                "✅ Аккаунт найден ботом. Теперь внеси депозит для подключения. "
-                "Достаточно всего 20 евро, чтобы бот смог подключиться к аккаунту и начать синхронизацию. "
-                "После внесения депозита бот напишет тебе что делать дальше.\n"
-                "--- [ПРОДОЛЖИТЬ](https://gembl.pro/click?o=705&a=1933&sub_id2={user_id}) ---"
-            )
-        else:
-            text = (
-                "✅ Бот подключен к сайту - открывай бота, делай ставки и зарабатывай!\n"
-                "--- [ОТКРЫТЬ ИГРУ](https://gembl.pro/click?o=705&a=1933&sub_id2={user_id}) ---"
-            )
-
-        text = text.format(user_id=user_id)
-
-        await query.edit_message_text(
-            text,
-            reply_markup=menu_keyboard(user_id),
-            parse_mode="Markdown"
+        text = (
+            "Когда создашь аккаунт на сайте, нажми на кнопку для подключения бота ✅"
         )
+
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🟢 Я СОЗДАЛ АККАУНТ", callback_data="created_account")],
+            [InlineKeyboardButton("⬅️ Назад в меню", callback_data="back_menu")]
+        ])
+
+        await query.edit_message_text(text, reply_markup=keyboard)
 
     elif data == "price":
         await query.edit_message_text(
@@ -181,59 +162,72 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=menu_keyboard(user_id),
         )
 
-# ===========================
-# ОБРАБОТКА ПОСТБЕКОВ
-# ===========================
+    elif data == "back_menu":
+        await query.edit_message_text(
+            "Главное меню 👇",
+            reply_markup=menu_keyboard(user_id),
+        )
 
-async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.id != POSTBACK_CHAT_ID:
-        return
+    # ======== МЕХАНИКА РЕГИСТРАЦИИ ========
+    elif data == "created_account":
+        await query.edit_message_text(
+            "🔍 Бот ищет твой аккаунт, подожди 1-2 минуты. "
+            "Когда аккаунт будет найден, ты получишь уведомление..."
+        )
 
-    text = update.message.text or ""
-    match = ID_PATTERN.search(text)
+        await send_log(context.application, f"⏳ Пользователь {user_id} нажал: Я СОЗДАЛ АККАУНТ")
 
-    if not match:
-        await send_log(context.application, f"⚠️ Постбек без понятного ID: {text}")
-        return
+        # Ждём 50 секунд
+        await asyncio.sleep(50)
 
-    user_id = int(match.group(1))
-    user_status.setdefault(user_id, "new")
-
-    text_lower = text.lower()
-
-    # === РЕГИСТРАЦИЯ ===
-    if "registration" in text_lower or "reg" in text_lower:
+        # Меняем статус
         user_status[user_id] = "registered"
-        save_users()  # <-- сохраняем
+        save_users()
 
-        await send_log(context.application, f"📩 Регистрация для {user_id}")
+        await context.application.bot.send_message(
+            chat_id=user_id,
+            text="✅ Аккаунт обнаружен ботом! Теперь внеси депозит для подключения.\n"
+                 "Достаточно всего 20 евро, чтобы бот смог подключиться к аккаунту.",
+            reply_markup=menu_keyboard(user_id),
+        )
 
-        try:
-            await context.application.bot.send_message(
-                chat_id=user_id,
-                text="✅ Аккаунт найден ботом. Теперь внеси депозит для подключения. "
-                     "Достаточно всего 20 евро, чтобы бот смог подключиться к аккаунту и начать синхронизацию. "
-                     "После внесения депозита бот напишет тебе что делать дальше.",
-                reply_markup=menu_keyboard(user_id),
-            )
-        except Exception as e:
-            await send_log(context.application, f"❌ Не смог написать пользователю {user_id}: {e}")
+        # Отправляем новую кнопку
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💰 Я ВНЕС ДЕПОЗИТ", callback_data="made_deposit")],
+            [InlineKeyboardButton("⬅️ Назад в меню", callback_data="back_menu")]
+        ])
 
-    # === ДЕПОЗИТ ===
-    elif "deposit" in text_lower or "amount" in text_lower:
+        await context.application.bot.send_message(
+            chat_id=user_id,
+            text="Когда сделаешь депозит, нажми на кнопку для активации бота ✅",
+            reply_markup=keyboard,
+        )
+
+        await send_log(context.application, f"✅ Статус {user_id} → registered")
+
+    # ======== МЕХАНИКА ДЕПОЗИТА ========
+    elif data == "made_deposit":
+        await query.edit_message_text(
+            "🔄 Бот подключается к аккаунту, ожидайте 1-3 минуты..."
+        )
+
+        await send_log(context.application, f"⏳ Пользователь {user_id} нажал: Я ВНЕС ДЕПОЗИТ")
+
+        # Ждём 190 секунд
+        await asyncio.sleep(190)
+
+        # Меняем статус
         user_status[user_id] = "deposited"
-        save_users()  # <-- сохраняем
+        save_users()
 
-        await send_log(context.application, f"💰 Депозит получен для {user_id}")
+        await context.application.bot.send_message(
+            chat_id=user_id,
+            text="🎉 Депозит обнаружен! Бот успешно подключен.\n"
+                 "Теперь можешь открывать приложение и начинать играть 🚀",
+            reply_markup=menu_keyboard(user_id),
+        )
 
-        try:
-            await context.application.bot.send_message(
-                chat_id=user_id,
-                text="🎉 Поздравляю! Бот успешно подключен к аккаунту! Открывай приложение и зарабатывай!",
-                reply_markup=menu_keyboard(user_id),
-            )
-        except Exception as e:
-            await send_log(context.application, f"❌ Не смог написать пользователю {user_id}: {e}")
+        await send_log(context.application, f"💰 Статус {user_id} → deposited")
 
 # ===========================
 # ЗАПУСК БОТА
@@ -242,15 +236,12 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     print("🚀 Бот запускается...")
 
-    load_users()  # <-- загружаем статусы при старте
+    load_users()
 
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(menu_callback))
-    app.add_handler(
-        MessageHandler(filters.Chat(POSTBACK_CHAT_ID) & filters.TEXT, postback_handler)
-    )
 
     print("✅ Bot started and running...")
     app.run_polling()
