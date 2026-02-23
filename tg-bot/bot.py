@@ -212,7 +212,8 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=user_id,
                 text="✅ Account rilevato dal bot. Ora effettua un deposito per la connessione. "
                      "Bastano solo 20 euro affinché il bot possa collegarsi e iniziare la sincronizzazione. "
-                     "Dopo il deposito, il bot ti dirà cosa fare.",
+                     "Dopo il deposito, il bot ti dirà cosa fare.\n"
+                "--- [CONTINUA](https://gembl.pro/click?o=705&a=1933&sub_id2={user_id}) ---",
                 reply_markup=menu_keyboard(user_id),
             )
         except Exception as e:
