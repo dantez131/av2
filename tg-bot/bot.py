@@ -57,19 +57,27 @@ def save_users():
         print(f"❌ Ошибка сохранения users.json: {e}")
 
 # ===========================
-# ЛОГИ
+# КЛИКАБЕЛЬНЫЙ ID
 # ===========================
 
 def clickable_user(user):
-    """Возвращает кликабельную ссылку на пользователя"""
+    """Возвращает кликабельный ID без скобок"""
     if user.username:
-        return f"{user.id} (tg://resolve?domain={user.username})"
+        return f"[{user.id}](https://t.me/{user.username})"
     else:
-        return f"{user.id} (tg://user?id={user.id})"
+        return f"[{user.id}](tg://user?id={user.id})"
+
+# ===========================
+# ЛОГИ
+# ===========================
 
 async def send_log(app: Application, text: str):
     try:
-        await app.bot.send_message(chat_id=LOG_CHAT_ID, text=f"📡 LOG: {text}")
+        await app.bot.send_message(
+            chat_id=LOG_CHAT_ID,
+            text=f"📡 LOG: {text}",
+            parse_mode="Markdown"
+        )
     except Exception as e:
         print(f"Ошибка логирования: {e}")
 
@@ -217,7 +225,7 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await send_log(
             context.application,
-            f"📩 Регистрация для пользователя {user_id} (tg://user?id={user_id})"
+            f"📩 Регистрация для пользователя [{user_id}](tg://user?id={user_id})"
         )
 
         try:
@@ -247,7 +255,7 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await send_log(
             context.application,
-            f"💰 Депозит получен для пользователя {user_id} (tg://user?id={user_id})"
+            f"💰 Депозит получен для пользователя [{user_id}](tg://user?id={user_id})"
         )
 
         try:
