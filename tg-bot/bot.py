@@ -23,7 +23,7 @@ from telegram.ext import (
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 LOG_CHAT_ID = -1003671787625       # чат для логов
-
+POSTBACK_CHAT_ID = -1003712583340
 BASE_APP_URL = "https://aviatorbot.up.railway.app/"
 
 user_status = {}
@@ -188,6 +188,62 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Menù principale 👇",
             reply_markup=menu_keyboard(user_id),
         )
+
+# ===========================
+# ОБРАБОТКА ПОСТБЕКОВ
+# ===========================
+
+async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.id != POSTBACK_CHAT_ID:
+        return
+
+    text = update.message.text or ""
+    match = ID_PATTERN.search(text)
+
+    if not match:
+        await send_log(context.application, f"⚠️ Постбек без понятного ID: {text}")
+        return
+
+    user_id = int(match.group(1))
+    user_status.setdefault(user_id, "new")
+
+    text_lower = text.lower()
+
+    if "registration" in text_lower or "reg" in text_lower:
+        user_status[user_id] = "registered"
+        save_users()
+
+        await send_log(context.application, f"📩 Регистрация для {user_id}")
+
+        try:
+            await context.application.bot.send_message(
+                chat_id=user_id,
+                text="✅ Account rilevato dal bot! \n"
+                     "Ora effettua un deposito per connetterti.\n"
+                     "Il deposito minimo è di soli 20 euro affinché il bot si connetta al tuo account.",
+                reply_markup=after_registration_keyboard(user_id),
+            )
+        except Exception as e:
+            await send_log(context.application, f"❌ Не смог написать пользователю {user_id}: {e}")
+
+    elif "deposit" in text_lower or "amount" in text_lower:
+        user_status[user_id] = "deposited"
+        save_users()
+
+        await send_log(context.application, f"💰 Депозит получен для {user_id}")
+
+        try:
+            await context.application.bot.send_message(
+                chat_id=user_id,
+                text="🎉 Deposito rilevato! Bot connesso correttamente.\n"
+                     "Ora puoi aprire l'applicazione e iniziare a giocare 🚀",
+                reply_markup=menu_keyboard(user_id),
+            )
+        except Exception as e:
+            await send_log(context.application, f"❌ Не смог написать пользователю {user_id}: {e}")
+
+
+
 
 # ===========================
 # ЗАПУСК БОТА
