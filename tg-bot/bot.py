@@ -57,15 +57,12 @@ def save_users():
         print(f"❌ Ошибка сохранения users.json: {e}")
 
 # ===========================
-# КЛИКАБЕЛЬНЫЙ ID
+# КЛИКАБЕЛЬНЫЙ ID (БЕЗ КАРТОЧКИ)
 # ===========================
 
 def clickable_user(user):
-    """Возвращает кликабельный ID без скобок"""
-    if user.username:
-        return f"[{user.id}](https://t.me/{user.username})"
-    else:
-        return f"[{user.id}](tg://user?id={user.id})"
+    """Возвращает кликабельный ID без появления карточки контакта"""
+    return f"[{user.id}](tg://user?id={user.id})"
 
 # ===========================
 # ЛОГИ
