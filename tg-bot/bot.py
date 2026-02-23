@@ -25,14 +25,10 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 LOG_CHAT_ID = -1003671787625       # чат для логов
 POSTBACK_CHAT_ID = -1003712583340  # чат с постбеками
 
-# Адрес твоего веб-приложения
 BASE_APP_URL = "https://aviatorbot.up.railway.app/"
 
-# Вытаскиваем ID пользователя из постбека между ==
 ID_PATTERN = re.compile(r"==(\d+)==")
 
-# Память состояний пользователей (теперь сохраняем в файл)
-# Возможные состояния: "new", "registered", "deposited"
 user_status = {}
 
 USERS_FILE = "users.json"
@@ -63,6 +59,13 @@ def save_users():
 # ===========================
 # ЛОГИ
 # ===========================
+
+def clickable_user(user):
+    """Возвращает кликабельную ссылку на пользователя"""
+    if user.username:
+        return f"{user.id} (tg://resolve?domain={user.username})"
+    else:
+        return f"{user.id} (tg://user?id={user.id})"
 
 async def send_log(app: Application, text: str):
     try:
@@ -106,13 +109,14 @@ def menu_keyboard(user_id: int):
 # ===========================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
+    user = update.effective_user
+    user_id = user.id
     user_status.setdefault(user_id, "new")
     save_users()
 
     await send_log(
         context.application,
-        f"Пользователь {user_id} нажал /start (статус: {user_status[user_id]})"
+        f"Пользователь {clickable_user(user)} нажал /start (статус: {user_status[user_id]})"
     )
 
     await update.message.reply_text(
@@ -127,16 +131,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    user_id = query.from_user.id
+    user = query.from_user
+    user_id = user.id
     data = query.data
 
     await query.answer()
     status = user_status.get(user_id, "new")
 
-    # ЛОГ ЛЮБОГО НАЖАТИЯ INLINE-КНОПКИ
     await send_log(
         context.application,
-        f"Пользователь {user_id} нажал inline-кнопку '{data}' (статус: {status})"
+        f"Пользователь {clickable_user(user)} нажал кнопку '{data}' (статус: {status})"
     )
 
     if data == "instruction":
@@ -211,7 +215,10 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_status[user_id] = "registered"
         save_users()
 
-        await send_log(context.application, f"📩 Регистрация для {user_id}")
+        await send_log(
+            context.application,
+            f"📩 Регистрация для пользователя {user_id} (tg://user?id={user_id})"
+        )
 
         try:
             keyboard = InlineKeyboardMarkup([
@@ -238,7 +245,10 @@ async def postback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_status[user_id] = "deposited"
         save_users()
 
-        await send_log(context.application, f"💰 Депозит получен для {user_id}")
+        await send_log(
+            context.application,
+            f"💰 Депозит получен для пользователя {user_id} (tg://user?id={user_id})"
+        )
 
         try:
             await context.application.bot.send_message(
