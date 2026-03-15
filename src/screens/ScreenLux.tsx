@@ -3,16 +3,21 @@ import FlyingPlane from '../components/FlyingPlane';
 import FallingPixels from '../components/FallingPixels';
 
 export default function Screen4() {
+  const multipliers = [1.16, 1.31, 2.22, 33, 44, 17, 19];
+
   const [multiplier, setMultiplier] = useState<number | null>(null);
   const [history, setHistory] = useState<number[]>([]);
   const [animationKey, setAnimationKey] = useState(0);
+  const [index, setIndex] = useState(0);
 
   const generateMultiplier = () => {
-    const random = 1.01 + Math.random() * (2.01 - 1.01);
-    const newMultiplier = Number(random.toFixed(2));
+    const newMultiplier = multipliers[index];
+
     setMultiplier(newMultiplier);
     setAnimationKey((prev) => prev + 1);
     setHistory((prev) => [newMultiplier, ...prev.slice(0, 19)]);
+
+    setIndex((prev) => (prev + 1) % multipliers.length);
   };
 
   return (
@@ -31,9 +36,6 @@ export default function Screen4() {
       {history.length > 0 && (
         <div className="absolute top-2 left-0 right-0 z-20 flex justify-center px-2">
           <div className="text-center">
-            <p className="text-xs font-light text-white/70 mb-1 tracking-wide">
-               
-            </p>
             <div className="flex flex-wrap gap-1 justify-center max-w-sm">
               {history.map((value, idx) => (
                 <span key={idx} className="text-xs text-white/60 font-light">
