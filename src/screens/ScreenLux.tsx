@@ -68,7 +68,7 @@ export default function Screen4() {
         <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 shadow-2xl border border-white/20 w-full max-w-sm">
           <div className="text-center">
             <p className="text-yellow-400 text-xs font-light leading-relaxed">
-              Il bot è connesso e pronto a funzionare. Sincronizzazione attuale dei coefficienti - 99%
+              Il bot è connesso e pronto a funzionare. Sincronizzazione attuale dei coefficienti - 100%
             </p>
           </div>
         </div>
