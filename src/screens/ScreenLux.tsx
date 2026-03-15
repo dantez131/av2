@@ -3,7 +3,7 @@ import FlyingPlane from '../components/FlyingPlane';
 import FallingPixels from '../components/FallingPixels';
 
 export default function Screen4() {
-  const multipliers = [1.16, 1.31, 2.22, 33, 44, 17, 19];
+  const multipliers = [1.34, 1.10, 1.18, 2.59, 1.51, 1.30, 1.41];
 
   const [multiplier, setMultiplier] = useState<number | null>(null);
   const [history, setHistory] = useState<number[]>([]);
