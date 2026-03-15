@@ -8,7 +8,7 @@ export default function Screen4() {
   const [animationKey, setAnimationKey] = useState(0);
 
   const generateMultiplier = () => {
-    const random = 1.01 + Math.random() * (12.01 - 1.01);
+    const random = 1.01 + Math.random() * (2.01 - 1.01);
     const newMultiplier = Number(random.toFixed(2));
     setMultiplier(newMultiplier);
     setAnimationKey((prev) => prev + 1);
