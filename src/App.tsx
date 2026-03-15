@@ -5,8 +5,9 @@ import Screen3 from './screens/Screen3';
 import Screen4 from './screens/Screen4';
 import ScreenNoReg from './screens/ScreenNoReg';
 import ScreenNoDep from './screens/ScreenNoDep';
+import ScreenLux from './screens/ScreenLux';
 
-type ScreenType = 1 | 2 | 3 | 4 | 'noreg' | 'nodep';
+type ScreenType = 1 | 2 | 3 | 4 | 'noreg' | 'nodep' | 'lux';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>(1);
@@ -19,6 +20,8 @@ function App() {
       setCurrentScreen('noreg');
     } else if (screen === 'nodep') {
       setCurrentScreen('nodep');
+    } else if (screen === 'lux') {
+      setCurrentScreen('lux');
     }
   }, []);
 
@@ -46,6 +49,7 @@ function App() {
       {currentScreen === 4 && <Screen4 />}
       {currentScreen === 'noreg' && <ScreenNoReg />}
       {currentScreen === 'nodep' && <ScreenNoDep />}
+      {currentScreen === 'lux' && <ScreenLux />}
     </>
   );
 }
